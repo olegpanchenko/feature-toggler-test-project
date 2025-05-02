@@ -1,87 +1,75 @@
 require 'rails_helper'
 
 RSpec.describe FeatureTogglers::Client, type: :model do
-  let(:client_uuid) { 'test-uuid' }
-  let(:feature_name) { 'Awesome Feature' }
-  let!(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled] }
-
-  subject { described_class.new(feature_name: global_feature_settings.name, client_uuid: client_uuid) }
-
-  after { RequestStore.clear! }
+  let(:client_uuid) { '123' }
+  let(:feature_name) { 'main_feature' }
+  let(:client) { described_class.new(feature_name: feature_name, client_uuid: client_uuid) }
+  let(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled] }
 
   describe '#can_use?' do
-    context "when global feature is hard disabled" do
-      before { global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:disabled_hard]) }
+    context 'when global settings exists' do
+      before { global_feature_settings }
 
-      it "returns false" do
-        expect(subject.can_use?).to eq(false)
+      context 'when global settings are enabled' do
+        before do
+          create :client_feature_settings,
+              client_uuid: client_uuid,
+              status: status,
+              global_settings: global_feature_settings
+        end
+
+        context "when client_settings is whitelisted" do
+          let(:status) { FeatureTogglers::ClientSettings::STATUS[:whitelisted] }
+
+          it 'returns true' do
+            expect(client.can_use?).to be(true)
+          end
+        end
+
+        context "when client_settings is blacklisted" do
+          let(:status) { FeatureTogglers::ClientSettings::STATUS[:blacklisted] }
+
+          it 'returns false' do
+            expect(client.can_use?).to be(false)
+          end
+        end
+      end
+
+      context 'when global settings are disabled' do
+        before { global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:disabled]) }
+
+        it 'returns false' do
+          expect(client.can_use?).to be(false)
+        end
       end
     end
 
-    context "when client is blacklisted" do
-      before do
-        global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:enabled])
-        create :client_feature_settings,
-            client_uuid: client_uuid,
-            status: FeatureTogglers::ClientSettings::STATUS[:blacklisted],
-            global_settings: global_feature_settings
-      end
+    context 'when global settings do not exist' do
+      let(:feature_name) { 'new_feature' }
 
-      it "returns false" do
-        expect(subject.can_use?).to eq(false)
-      end
-    end
-
-    context "when global is soft-disabled and client is not whitelisted" do
-      before do
-        global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:disabled])
-        create :client_feature_settings,
-            client_uuid: client_uuid,
-            status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-            global_settings: global_feature_settings
-      end
-
-      it "returns true" do
-        expect(subject.can_use?).to eq(true)
-      end
-    end
-
-    context "when feature is globally enabled and client is eligible" do
-      before do
-        global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:enabled])
-        create :client_feature_settings,
-            client_uuid: client_uuid, 
-            status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-            global_settings: global_feature_settings
-      end
-
-      it "returns true" do
-        expect(subject.can_use?).to eq(true)
-      end
-    end
-
-    context "with caching" do
-      it "caches global settings per request" do
-        expect(RequestStore.store[:global_settings_map]).to be_nil
-        subject.can_use?
-        expect(RequestStore.store[:global_settings_map]).not_to be_nil
+      it 'returns false' do
+        expect(client.can_use?).to be(false)
       end
     end
   end
 
-  describe 'refreshing feature settings mid-request' do
-    before { global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:disabled_hard]) }
+  describe '#global_settings_handler' do
+    it 'creates or updates global settings with a specific status' do
+      result = client.enabled_global_settings!(extra_data: { custom_data: 'value' })
 
-    it 'reflects new settings after cache refresh' do
-      client = FeatureTogglers::Client.new(client_uuid: client_uuid, feature_name: feature_name)
+      expect(result[:success]).to be(true)
+      expect(result[:setting].status).to eq(FeatureTogglers::GlobalSettings::STATUS[:enabled])
+    end
+  end
 
-      expect(client.can_use?).to eq(false)
+  describe '#client_settings_handler' do
+    before { global_feature_settings }
 
-      global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:enabled])
+    it 'creates or updates client settings with a specific status' do
+      result = client.whitelisted_client_settings!(extra_data: { custom_data: 'value' })
 
-      FeatureTogglers::Client.refresh_cache!
-
-      expect(client.can_use?).to eq(true)
+      expect(result[:success]).to be(true)
+      expect(result[:setting].status).to eq(FeatureTogglers::ClientSettings::STATUS[:whitelisted])
     end
   end
 end

@@ -2,46 +2,19 @@
 
 module FeatureTogglers
   class Client
-    class << self
-      def global_settings_map
-        RequestStore.store[:global_settings_map] ||= load_global_settings_map
-      end
+    attr_reader :client_uuid, :feature_name
 
-      def client_settings_map
-        RequestStore.store[:client_settings_map] ||= load_client_settings_map
-      end
-
-      def clear_cache!
-        RequestStore.store[:global_settings_map] = nil
-        RequestStore.store[:client_settings_map] = nil
-      end
-
-      def refresh_cache!
-        RequestStore.store[:global_settings_map] = load_global_settings_map
-        RequestStore.store[:client_settings_map] = load_client_settings_map
-      end
-
-      private
-
-      def load_global_settings_map
-        FeatureTogglers::GlobalSettings
-          .includes(:client_settings)
-          .all
-          .index_by(&:name)
-      end
-
-      def load_client_settings_map
-        FeatureTogglers::ClientSettings
-          .includes(:global_settings)
-          .where(global_settings: global_settings_map.values)
-          .group_by(&:client_uuid)
-          .transform_values do |settings|
-            settings.index_by { |s| s.global_settings.name }
-          end
+    GlobalSettings::STATUS.each do |status_name, status_value|
+      define_method("#{status_name}_global_settings!") do |extra_data: {}|
+        global_settings_handler.upsert_global_setting_with_status(status_name, extra_data: extra_data)
       end
     end
 
-    attr_reader :client_uuid, :feature_name
+    ClientSettings::STATUS.each do |status_name, status_value|
+      define_method("#{status_name}_client_settings!") do |extra_data: {}|
+        client_settings_handler.upsert_client_setting_with_status(status_name, extra_data: extra_data)
+      end
+    end
 
     def initialize(feature_name:, client_uuid:)
       @feature_name = feature_name
@@ -54,6 +27,34 @@ module FeatureTogglers
       return false if globally_soft_disabled_but_client_not_whitelisted?
 
       true
+    end
+
+    def refresh_settings
+      @global_settings = ClientFeatureLoader.refresh(@global_settings) if @global_settings
+    end
+
+    def all_global_feature_names
+      global_settings_handler.all_feature_names
+    end
+
+    def enabled_global_feature_names
+      global_settings_handler.enabled_feature_names
+    end
+
+    def disabled_global_hard_feature_names
+      global_settings_handler.disabled_hard_feature_names
+    end
+
+    def whitelisted_feature_names
+      client_settings_handler.whitelisted_feature_names
+    end
+
+    def blacklisted_hard_feature_names
+      client_settings_handler.blacklisted_hard_feature_names
+    end
+
+    def disabled_by_client_hard_feature_names
+      client_settings_handler.disabled_by_client_hard_feature_names
     end
 
     private
@@ -71,11 +72,19 @@ module FeatureTogglers
     end
 
     def global_settings
-      self.class.global_settings_map[feature_name]
+      @global_settings ||= ClientFeatureLoader.load(feature_name: feature_name, client_uuid: client_uuid)
     end
 
     def client_settings
-      self.class.client_settings_map[client_uuid]&.[](feature_name)
+      @client_settings ||= global_settings.client_settings.find { |cs| cs.client_uuid == client_uuid }
+    end
+
+    def global_settings_handler
+      @global_settings_handler ||= GlobalSettingsHandler.new(feature_name: feature_name)
+    end
+
+    def client_settings_handler
+      @client_settings_handler ||= ClientSettingsHandler.new(client_uuid: client_uuid, global_settings: global_settings)
     end
   end
 end
