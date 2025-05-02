@@ -68,4 +68,20 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       end
     end
   end
+
+  describe 'refreshing feature settings mid-request' do
+    before { global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:disabled_hard]) }
+
+    it 'reflects new settings after cache refresh' do
+      client = FeatureTogglers::Client.new(client_uuid: client_uuid, feature_name: feature_name)
+
+      expect(client.can_use?).to eq(false)
+
+      global_feature_settings.update!(status: FeatureTogglers::GlobalSettings::STATUS[:enabled])
+
+      FeatureTogglers::Client.refresh_cache!
+
+      expect(client.can_use?).to eq(true)
+    end
+  end
 end

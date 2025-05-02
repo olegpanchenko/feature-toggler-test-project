@@ -4,25 +4,40 @@ module FeatureTogglers
   class Client
     class << self
       def global_settings_map
-        RequestStore.store[:global_settings_map] ||= FeatureTogglers::GlobalSettings
-                                                     .includes(:client_settings)
-                                                     .all
-                                                     .index_by(&:name)
+        RequestStore.store[:global_settings_map] ||= load_global_settings_map
       end
 
       def client_settings_map
-        RequestStore.store[:client_settings_map] ||= FeatureTogglers::ClientSettings
-                                                     .includes(:global_settings)
-                                                     .where(global_settings: global_settings_map.values)
-                                                     .group_by(&:client_uuid)
-                                                     .transform_values do |settings|
-          settings.index_by { |s| s.global_settings.name }
-        end
+        RequestStore.store[:client_settings_map] ||= load_client_settings_map
       end
 
-      def clear_cache
+      def clear_cache!
         RequestStore.store[:global_settings_map] = nil
         RequestStore.store[:client_settings_map] = nil
+      end
+
+      def refresh_cache!
+        RequestStore.store[:global_settings_map] = load_global_settings_map
+        RequestStore.store[:client_settings_map] = load_client_settings_map
+      end
+
+      private
+
+      def load_global_settings_map
+        FeatureTogglers::GlobalSettings
+          .includes(:client_settings)
+          .all
+          .index_by(&:name)
+      end
+
+      def load_client_settings_map
+        FeatureTogglers::ClientSettings
+          .includes(:global_settings)
+          .where(global_settings: global_settings_map.values)
+          .group_by(&:client_uuid)
+          .transform_values do |settings|
+            settings.index_by { |s| s.global_settings.name }
+          end
       end
     end
 
@@ -56,11 +71,11 @@ module FeatureTogglers
     end
 
     def global_settings
-      @global_settings ||= self.class.global_settings_map[feature_name]
+      self.class.global_settings_map[feature_name]
     end
 
     def client_settings
-      @client_settings ||= self.class.client_settings_map[client_uuid]&.[](feature_name)
+      self.class.client_settings_map[client_uuid]&.[](feature_name)
     end
   end
 end
