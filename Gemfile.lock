@@ -185,8 +185,6 @@ GEM
     rb-inotify (0.11.1)
       ffi (~> 1.0)
     regexp_parser (2.10.0)
-    request_store (1.7.0)
-      rack (>= 1.4)
     rexml (3.4.1)
     rspec-core (3.13.3)
       rspec-support (~> 3.13.0)
@@ -312,7 +310,6 @@ DEPENDENCIES
   puma (~> 5.0)
   rack-mini-profiler (~> 2.0)
   rails (~> 6.1.7, >= 6.1.7.10)
-  request_store
   rspec-rails (~> 6.1)
   rubocop-rails-omakase
   sass-rails (>= 6)
