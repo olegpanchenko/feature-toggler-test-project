@@ -54,10 +54,14 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   end
 
   describe '#global_settings_handler' do
+    before { global_feature_settings }
+
     it 'creates or updates global settings with a specific status' do
-      result = client.enabled_global_settings!(extra_data: { custom_data: 'value' })
+      expect(client.can_use?).to be(true)
+      result = client.disabled_hard_global_settings!(extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
+      expect(client.can_use?).to be(false)
     end
   end
 
@@ -65,9 +69,11 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     before { global_feature_settings }
 
     it 'creates or updates client settings with a specific status' do
-      result = client.whitelisted_client_settings!(extra_data: { custom_data: 'value' })
+      expect(client.can_use?).to be(true)
+      result = client.blacklisted_client_settings!(extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
+      expect(client.can_use?).to be(false)
     end
   end
 end

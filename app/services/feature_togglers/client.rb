@@ -15,13 +15,17 @@ module FeatureTogglers
 
     Configuration.statuses[:global].each do |status_name, status_value|
       define_method("#{status_name}_global_settings!") do |extra_data: {}|
-        global_settings_handler.upsert_global_setting_with_status(status_name, extra_data: extra_data)
+        result = global_settings_handler.upsert_global_setting_with_status(status_name, extra_data: extra_data)
+        refresh_settings
+        result
       end
     end
 
     Configuration.statuses[:client].each do |status_name, status_value|
       define_method("#{status_name}_client_settings!") do |extra_data: {}|
-        client_settings_handler.upsert_client_setting_with_status(status_name, extra_data: extra_data)
+        result = client_settings_handler.upsert_client_setting_with_status(status_name, extra_data: extra_data)
+        refresh_settings
+        result
       end
     end
 
@@ -39,7 +43,8 @@ module FeatureTogglers
     end
 
     def refresh_settings
-      @global_settings = ClientFeatureLoader.refresh(@global_settings) if @global_settings
+      @global_settings = nil
+      @client_settings = nil
     end
 
     private

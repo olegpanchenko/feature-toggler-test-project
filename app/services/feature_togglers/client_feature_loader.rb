@@ -16,9 +16,5 @@ module FeatureTogglers
         .load
         .first
     end
-
-    def self.refresh(global_settings)
-      global_settings.reload
-    end
   end
 end
