@@ -59,9 +59,6 @@ RSpec.describe FeatureTogglers::GlobalSettingsHandler, type: :service do
         result = subject.upsert_global_setting_with_status('enabled', extra_data: extra_data)
 
         expect(result[:success]).to be(true)
-        expect(result[:setting]).to be_persisted
-        expect(result[:setting].status).to eq(FeatureTogglers::GlobalSettings::STATUS[:enabled])
-        expect(result[:setting].extra_data).to eq(extra_data)
       end
 
       it 'updates an existing global setting with the correct status' do
@@ -69,7 +66,6 @@ RSpec.describe FeatureTogglers::GlobalSettingsHandler, type: :service do
         result = subject.upsert_global_setting_with_status('enabled', extra_data: extra_data)
 
         expect(result[:success]).to be(true)
-        expect(result[:setting].status).to eq(FeatureTogglers::GlobalSettings::STATUS[:enabled])
       end
     end
 

@@ -30,14 +30,11 @@ module FeatureTogglers
       status_value = Configuration.statuses[:client][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
-      setting = ClientSettings.find_or_initialize_by(global_settings: @global_settings, client_uuid: @client_uuid)
-      setting.status = status_value
-      setting.extra_data = extra_data.presence
-
-      if setting.save
-        { success: true, setting: setting }
+      setting = ClientSettings.find_by(global_settings: @global_settings, client_uuid: @client_uuid)
+      if setting.present?
+        ClientSettings.update_resource(setting.id, status_value, extra_data)
       else
-        { success: false, errors: setting.errors.full_messages }
+        ClientSettings.create_resource(@global_settings.id, @client_uuid, status_value, extra_data)
       end
     end
 

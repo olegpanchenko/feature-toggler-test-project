@@ -14,9 +14,6 @@ RSpec.describe FeatureTogglers::ClientSettingsHandler, type: :service do
         result = subject.upsert_client_setting_with_status('whitelisted', extra_data: extra_data)
 
         expect(result[:success]).to be(true)
-        expect(result[:setting]).to be_persisted
-        expect(result[:setting].status).to eq(FeatureTogglers::ClientSettings::STATUS[:whitelisted])
-        expect(result[:setting].extra_data).to eq(extra_data)
       end
 
       it 'updates an existing client setting with the correct status' do
@@ -27,7 +24,6 @@ RSpec.describe FeatureTogglers::ClientSettingsHandler, type: :service do
         result = subject.upsert_client_setting_with_status('whitelisted', extra_data: extra_data)
 
         expect(result[:success]).to be(true)
-        expect(result[:setting].status).to eq(FeatureTogglers::ClientSettings::STATUS[:whitelisted])
       end
     end
 

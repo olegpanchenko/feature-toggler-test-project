@@ -24,14 +24,11 @@ module FeatureTogglers
       status_value = Configuration.statuses[:global][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
-      setting = GlobalSettings.find_or_initialize_by(name: @feature_name)
-      setting.status = status_value
-      setting.extra_data = extra_data.presence
-
-      if setting.save
-        { success: true, setting: setting }
+      setting = GlobalSettings.find_by(name: @feature_name)
+      if setting.present?
+        GlobalSettings.update_resource(setting.id, status_value, extra_data)
       else
-        { success: false, errors: setting.errors.full_messages }
+        GlobalSettings.create_resource(@feature_name, status_value, extra_data)
       end
     end
   end

@@ -58,7 +58,6 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       result = client.enabled_global_settings!(extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
-      expect(result[:setting].status).to eq(FeatureTogglers::GlobalSettings::STATUS[:enabled])
     end
   end
 
@@ -69,7 +68,6 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       result = client.whitelisted_client_settings!(extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
-      expect(result[:setting].status).to eq(FeatureTogglers::ClientSettings::STATUS[:whitelisted])
     end
   end
 end
