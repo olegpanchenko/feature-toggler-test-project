@@ -9,19 +9,19 @@ module FeatureTogglers
     end
 
     def enabled_feature_names
-      GlobalSettings.where(status: GlobalSettings::STATUS[:enabled]).pluck(:name)
+      GlobalSettings.where(status: Configuration.statuses[:global][:enabled]).pluck(:name)
     end
 
     def disabled_feature_names
-      GlobalSettings.where(status: GlobalSettings::STATUS[:disabled]).pluck(:name)
+      GlobalSettings.where(status: Configuration.statuses[:global][:disabled]).pluck(:name)
     end
 
     def disabled_hard_feature_names
-      GlobalSettings.where(status: GlobalSettings::STATUS[:disabled_hard]).pluck(:name)
+      GlobalSettings.where(status: Configuration.statuses[:global][:disabled_hard]).pluck(:name)
     end
 
     def upsert_global_setting_with_status(status_name, extra_data: {})
-      status_value = GlobalSettings::STATUS[status_name.to_sym]
+      status_value = Configuration.statuses[:global][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
       setting = GlobalSettings.find_or_initialize_by(name: @feature_name)

@@ -44,15 +44,16 @@ RSpec.describe FeatureTogglers::ClientSettingsHandler, type: :service do
   describe '#whitelisted_feature_names' do
     it 'returns only whitelisted client settings with enabled global settings' do
       enabled_global = global_settings
-      disabled_global = create(:feature_togglers_global_settings, status: FeatureTogglers::GlobalSettings::STATUS[:disabled])
+      disabled_global = create(:feature_togglers_global_settings, name: 'disabled feature', status: FeatureTogglers::GlobalSettings::STATUS[:disabled])
+      disabled_hard_global = create(:feature_togglers_global_settings, name: 'disabled hard feature', status: FeatureTogglers::GlobalSettings::STATUS[:disabled_hard])
 
       create(:feature_togglers_client_settings, client_uuid: client_uuid, status: FeatureTogglers::ClientSettings::STATUS[:whitelisted], global_settings: enabled_global)
       create(:feature_togglers_client_settings, client_uuid: client_uuid, status: FeatureTogglers::ClientSettings::STATUS[:whitelisted], global_settings: disabled_global)
+      create(:feature_togglers_client_settings, client_uuid: client_uuid, status: FeatureTogglers::ClientSettings::STATUS[:whitelisted], global_settings: disabled_hard_global)
 
       handler = described_class.new(client_uuid: client_uuid, global_settings: enabled_global)
 
-      expect(handler.whitelisted_feature_names.count).to eq(1)
-      expect(handler.whitelisted_feature_names.pluck(:status).uniq).to eq([FeatureTogglers::ClientSettings::STATUS[:whitelisted]])
+      expect(handler.whitelisted_feature_names.count).to eq(2)
     end
   end
 

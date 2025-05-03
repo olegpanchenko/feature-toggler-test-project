@@ -4,13 +4,13 @@ module FeatureTogglers
   class Client
     attr_reader :client_uuid, :feature_name
 
-    GlobalSettings::STATUS.each do |status_name, status_value|
+    Configuration.statuses[:global].each do |status_name, status_value|
       define_method("#{status_name}_global_settings!") do |extra_data: {}|
         global_settings_handler.upsert_global_setting_with_status(status_name, extra_data: extra_data)
       end
     end
 
-    ClientSettings::STATUS.each do |status_name, status_value|
+    Configuration.statuses[:client].each do |status_name, status_value|
       define_method("#{status_name}_client_settings!") do |extra_data: {}|
         client_settings_handler.upsert_client_setting_with_status(status_name, extra_data: extra_data)
       end
