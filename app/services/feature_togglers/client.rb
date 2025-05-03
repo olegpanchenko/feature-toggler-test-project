@@ -2,7 +2,16 @@
 
 module FeatureTogglers
   class Client
+    extend Forwardable
+
     attr_reader :client_uuid, :feature_name
+
+    def_delegator :global_settings_handler, :all_feature_names
+    def_delegator :global_settings_handler, :enabled_global_feature_names
+    def_delegator :global_settings_handler, :disabled_global_hard_feature_names
+    def_delegator :client_settings_handler, :whitelisted_feature_names
+    def_delegator :client_settings_handler, :blacklisted_hard_feature_names
+    def_delegator :client_settings_handler, :disabled_by_client_hard_feature_names
 
     Configuration.statuses[:global].each do |status_name, status_value|
       define_method("#{status_name}_global_settings!") do |extra_data: {}|
@@ -31,30 +40,6 @@ module FeatureTogglers
 
     def refresh_settings
       @global_settings = ClientFeatureLoader.refresh(@global_settings) if @global_settings
-    end
-
-    def all_global_feature_names
-      global_settings_handler.all_feature_names
-    end
-
-    def enabled_global_feature_names
-      global_settings_handler.enabled_feature_names
-    end
-
-    def disabled_global_hard_feature_names
-      global_settings_handler.disabled_hard_feature_names
-    end
-
-    def whitelisted_feature_names
-      client_settings_handler.whitelisted_feature_names
-    end
-
-    def blacklisted_hard_feature_names
-      client_settings_handler.blacklisted_hard_feature_names
-    end
-
-    def disabled_by_client_hard_feature_names
-      client_settings_handler.disabled_by_client_hard_feature_names
     end
 
     private
