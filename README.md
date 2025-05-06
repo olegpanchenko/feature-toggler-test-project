@@ -56,8 +56,8 @@ end
 
 ```ruby
 # Check if a feature is enabled for a client
-client = FeatureTogglers::Client.new(feature_name: 'my_feature', client_uuid: 'client123')
-if client.can_use?
+client = FeatureTogglers::Client.new(client_uuid: 'client123')
+if client.enabled?(feature_name)
   # Feature is enabled
 else
   # Feature is disabled
@@ -68,35 +68,26 @@ end
 
 ```ruby
 # Enable a feature globally
-client.enabled_global_settings!
+client.enabled_global_settings!(feature_name)
 
 # Disable a feature globally
-client.disabled_global_settings!
+client.disabled_global_settings!(feature_name)
 
 # Hard disable a feature globally
-client.disabled_hard_global_settings!
+client.disabled_hard_global_settings!(feature_name)
 ```
 
 ### Managing Client Settings
 
 ```ruby
 # Whitelist a client for a feature
-client.whitelisted_client_settings!
+client.whitelisted_client_settings!(feature_name)
 
 # Blacklist a client from a feature
-client.blacklisted_client_settings!
+client.blacklisted_client_settings!(feature_name)
 
 # Disable a feature for a specific client
-client.disabled_by_client_client_settings!
-```
-
-### Adding Extra Data
-
-```ruby
-# Add extra configuration data
-client.enabled_global_settings!(extra_data: {
-  'enabled_for_organizations_newer_than_integer_date' => Time.now.to_i
-})
+client.disabled_by_client_client_settings!(feature_name)
 ```
 
 ## Status Types
