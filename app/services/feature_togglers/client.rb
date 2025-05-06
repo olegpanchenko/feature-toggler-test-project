@@ -55,10 +55,6 @@ module FeatureTogglers
         end
     end
 
-    def find_global_settings(feature_name)
-      GlobalSettings.find_by(name: feature_name)
-    end
-
     def find_client_settings(client_uuid, global_settings)
       ClientSettings.find_by(
         client_uuid: client_uuid,
