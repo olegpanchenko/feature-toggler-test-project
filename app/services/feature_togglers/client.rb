@@ -22,7 +22,9 @@ module FeatureTogglers
     end
 
     Configuration::STATUSES[:global].each do |status_name, status_value|
-      define_method("#{status_name}_global_setting!") do |feature_name, extra_data: {}|
+      verb = Configuration::VERBS[:global][status_name]
+
+      define_method("#{verb}_global_setting!") do |feature_name, extra_data: {}|
         upsert_global_setting(feature_name, status_name, extra_data).tap do
           refresh_settings
         end
@@ -30,7 +32,9 @@ module FeatureTogglers
     end
 
     Configuration::STATUSES[:client].each do |status_name, status_value|
-      define_method("#{status_name}_client_setting!") do |feature_name, extra_data: {}|
+      verb = Configuration::VERBS[:client][status_name]
+
+      define_method("#{verb}_client_setting!") do |feature_name, extra_data: {}|
         upsert_client_setting(feature_name, client_uuid, status_name, extra_data).tap do
           refresh_settings
         end

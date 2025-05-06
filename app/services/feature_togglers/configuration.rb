@@ -12,5 +12,18 @@ module FeatureTogglers
         disabled_by_client: 3
       }
     }
+
+    VERBS = {
+      global: {
+        enabled: :enable,
+        disabled: :disable,
+        disabled_hard: :disable_hard
+      },
+      client: {
+        whitelisted: :whitelist,
+        blacklisted: :blacklist,
+        disabled_by_client: :disable_by_client
+      }
+    }
   end
 end

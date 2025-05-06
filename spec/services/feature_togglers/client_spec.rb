@@ -86,12 +86,12 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     end
   end
 
-  describe '#enabled_global_setting!' do
+  describe '#enable_global_setting!' do
     let(:feature_name) { 'foobar' }
 
     it 'creates global settings with a enabled status' do
       expect(client.enabled?(feature_name)).to be(false)
-      result = client.enabled_global_setting!(feature_name)
+      result = client.enable_global_setting!(feature_name)
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(true)
@@ -100,19 +100,19 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     it 'updates global settings with a enabled status' do
       global_feature_settings = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:disabled]
       expect(client.enabled?(feature_name)).to be(false)
-      result = client.enabled_global_setting!(feature_name, extra_data: { custom_data: 'value' })
+      result = client.enable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(true)
     end
   end
 
-  describe '#disabled_global_setting!' do
+  describe '#disable_global_setting!' do
     let(:feature_name) { 'foobar' }
 
     it 'creates global settings with a disabled status' do
       expect(client.enabled?(feature_name)).to be(false)
-      result = client.disabled_global_setting!(feature_name)
+      result = client.disable_global_setting!(feature_name)
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
@@ -121,7 +121,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     it 'updates global settings with a disabled status' do
       global_feature_settings = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
       expect(client.enabled?(feature_name)).to be(true)
-      result = client.disabled_global_setting!(feature_name, extra_data: { custom_data: 'value' })
+      result = client.disable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
@@ -133,7 +133,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
     it 'creates global settings with a disabled_hard status' do
       expect(client.enabled?(feature_name)).to be(false)
-      result = client.disabled_global_setting!(feature_name)
+      result = client.disable_global_setting!(feature_name)
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
@@ -142,17 +142,17 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     it 'updates global settings with a disabled_hard status' do
       global_feature_settings = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
       expect(client.enabled?(feature_name)).to be(true)
-      result = client.disabled_global_setting!(feature_name, extra_data: { custom_data: 'value' })
+      result = client.disable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
     end
   end
 
-  describe '#whitelisted_client_setting!' do
+  describe '#whitelist_client_setting!' do
     it 'creates client settings with a whitelisted status' do
       expect(client.enabled?(global_feature_settings.name)).to be(true)
-      result = client.whitelisted_client_setting!(global_feature_settings.name)
+      result = client.whitelist_client_setting!(global_feature_settings.name)
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(global_feature_settings.name)).to be(true)
@@ -165,17 +165,17 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             global_settings: global_feature_settings
 
       expect(client.enabled?(feature_name)).to be(false)
-      result = client.whitelisted_client_setting!(feature_name, extra_data: { custom_data: 'value' })
+      result = client.whitelist_client_setting!(feature_name, extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(true)
     end
   end
 
-  describe '#blacklisted_client_setting!' do
+  describe '#blacklist_client_setting!' do
     it 'creates client settings with a blacklisted status' do
       expect(client.enabled?(global_feature_settings.name)).to be(true)
-      result = client.blacklisted_client_setting!(global_feature_settings.name)
+      result = client.blacklist_client_setting!(global_feature_settings.name)
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(global_feature_settings.name)).to be(false)
@@ -188,17 +188,17 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             global_settings: global_feature_settings
 
       expect(client.enabled?(feature_name)).to be(true)
-      result = client.blacklisted_client_setting!(feature_name, extra_data: { custom_data: 'value' })
+      result = client.blacklist_client_setting!(feature_name, extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
     end
   end
 
-  describe '#disabled_by_client_client_setting!' do
+  describe '#disable_by_client_client_setting  !' do
     it 'creates client settings with a disabled_by_client status' do
       expect(client.enabled?(global_feature_settings.name)).to be(true)
-      result = client.disabled_by_client_client_setting!(global_feature_settings.name)
+      result = client.disable_by_client_client_setting!(global_feature_settings.name)
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(global_feature_settings.name)).to be(false)
@@ -211,7 +211,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             global_settings: global_feature_settings
 
       expect(client.enabled?(feature_name)).to be(true)
-      result = client.disabled_by_client_client_setting!(feature_name, extra_data: { custom_data: 'value' })
+      result = client.disable_by_client_client_setting!(feature_name, extra_data: { custom_data: 'value' })
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)

@@ -32,20 +32,18 @@ The system uses a simple configuration setup:
 ```ruby
 module FeatureTogglers
   module Configuration
-    def self.statuses
-      {
-        global: {
-          disabled: 1,
-          disabled_hard: 2,
-          enabled: 3
-        },
-        client: {
-          whitelisted: 1,
-          blacklisted: 2,
-          disabled_by_client: 3
-        }
+    STATUSES = {
+      global: {
+        disabled: 1,
+        disabled_hard: 2,
+        enabled: 3
+      },
+      client: {
+        whitelisted: 1,
+        blacklisted: 2,
+        disabled_by_client: 3
       }
-    end
+    }
   end
 end
 ```
@@ -68,26 +66,26 @@ end
 
 ```ruby
 # Enable a feature globally
-client.enabled_global_settings!(feature_name)
+client.enable_global_settings!(feature_name)
 
 # Disable a feature globally
-client.disabled_global_settings!(feature_name)
+client.disable_global_settings!(feature_name)
 
 # Hard disable a feature globally
-client.disabled_hard_global_settings!(feature_name)
+client.disable_hard_global_settings!(feature_name)
 ```
 
 ### Managing Client Settings
 
 ```ruby
 # Whitelist a client for a feature
-client.whitelisted_client_settings!(feature_name)
+client.whitelist_client_settings!(feature_name)
 
 # Blacklist a client from a feature
-client.blacklisted_client_settings!(feature_name)
+client.blacklist_client_settings!(feature_name)
 
 # Disable a feature for a specific client
-client.disabled_by_client_client_settings!(feature_name)
+client.disable_by_client_client_settings!(feature_name)
 ```
 
 ## Status Types
