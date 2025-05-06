@@ -21,7 +21,7 @@ module FeatureTogglers
       @cache.clear
     end
 
-    Configuration.statuses[:global].each do |status_name, status_value|
+    Configuration::STATUSES[:global].each do |status_name, status_value|
       define_method("#{status_name}_global_setting!") do |feature_name, extra_data: {}|
         upsert_global_setting(feature_name, status_name, extra_data).tap do
           refresh_settings
@@ -29,7 +29,7 @@ module FeatureTogglers
       end
     end
 
-    Configuration.statuses[:client].each do |status_name, status_value|
+    Configuration::STATUSES[:client].each do |status_name, status_value|
       define_method("#{status_name}_client_setting!") do |feature_name, extra_data: {}|
         upsert_client_setting(feature_name, client_uuid, status_name, extra_data).tap do
           refresh_settings
@@ -58,7 +58,7 @@ module FeatureTogglers
     end
 
     def upsert_global_setting(feature_name, status_name, extra_data)
-      status_value = Configuration.statuses[:global][status_name.to_sym]
+      status_value = Configuration::STATUSES[:global][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
       global_settings = fetch_global_setting(feature_name)
@@ -70,7 +70,7 @@ module FeatureTogglers
     end
 
     def upsert_client_setting(feature_name, client_uuid, status_name, extra_data)
-      status_value = Configuration.statuses[:client][status_name.to_sym]
+      status_value = Configuration::STATUSES[:client][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
       global_settings = fetch_global_setting(feature_name)
