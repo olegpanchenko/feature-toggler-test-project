@@ -4,7 +4,7 @@ module FeatureTogglers
   class Client
     attr_reader :client_uuid
 
-    def initialize(client_uuid:, cache: Cache.new)
+    def initialize(client_uuid:, cache: FeatureTogglers::Cache.new)
       @client_uuid = client_uuid
       @cache = cache
     end
