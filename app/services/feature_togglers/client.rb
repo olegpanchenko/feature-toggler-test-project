@@ -10,10 +10,10 @@ module FeatureTogglers
     end
 
     def enabled?(feature_name)
-      global_settings = fetch_global_settings(feature_name)
+      global_settings = fetch_global_setting(feature_name)
       return false if global_settings.nil? || global_settings.disabled_hard?
 
-      client_settings = fetch_client_settings(feature_name, global_settings)
+      client_settings = fetch_client_setting(feature_name, global_settings)
       return client_settings&.whitelisted? || (global_settings.enabled? && client_settings.nil?)
     end
 
@@ -22,16 +22,16 @@ module FeatureTogglers
     end
 
     Configuration.statuses[:global].each do |status_name, status_value|
-      define_method("#{status_name}_global_settings!") do |feature_name, extra_data: {}|
-        upsert_global_settings(feature_name, status_name, extra_data).tap do
+      define_method("#{status_name}_global_setting!") do |feature_name, extra_data: {}|
+        upsert_global_setting(feature_name, status_name, extra_data).tap do
           refresh_settings
         end
       end
     end
 
     Configuration.statuses[:client].each do |status_name, status_value|
-      define_method("#{status_name}_client_settings!") do |feature_name, extra_data: {}|
-        upsert_client_settings(feature_name, client_uuid, status_name, extra_data).tap do
+      define_method("#{status_name}_client_setting!") do |feature_name, extra_data: {}|
+        upsert_client_setting(feature_name, client_uuid, status_name, extra_data).tap do
           refresh_settings
         end
       end
@@ -39,7 +39,7 @@ module FeatureTogglers
 
     private
 
-    def fetch_global_settings(feature_name)
+    def fetch_global_setting(feature_name)
       if @cache.global_features.nil?
         all_settings = GlobalSettings.all.to_a
         @cache.set_global_features(all_settings)
@@ -48,7 +48,7 @@ module FeatureTogglers
       @cache.global_features.find { |gs| gs.name == feature_name }
     end
 
-    def fetch_client_settings(feature_name, global_settings)
+    def fetch_client_setting(feature_name, global_settings)
       if @cache.client_settings.nil?
         all_settings = ClientSettings.where(client_uuid: client_uuid).to_a
         @cache.set_client_settings(all_settings)
@@ -57,11 +57,11 @@ module FeatureTogglers
       @cache.client_settings.find { |cs| cs.feature_toggle_settings_id == global_settings.id }
     end
 
-    def upsert_global_settings(feature_name, status_name, extra_data)
+    def upsert_global_setting(feature_name, status_name, extra_data)
       status_value = Configuration.statuses[:global][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
-      global_settings = fetch_global_settings(feature_name)
+      global_settings = fetch_global_setting(feature_name)
       if global_settings.present?
         GlobalSettings.update_resource(global_settings.id, status_value, extra_data)
       else
@@ -69,14 +69,14 @@ module FeatureTogglers
       end
     end
 
-    def upsert_client_settings(feature_name, client_uuid, status_name, extra_data)
+    def upsert_client_setting(feature_name, client_uuid, status_name, extra_data)
       status_value = Configuration.statuses[:client][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
-      global_settings = fetch_global_settings(feature_name)
+      global_settings = fetch_global_setting(feature_name)
       return { success: false, error: "Invalid feature name: #{feature_name}" } unless global_settings
 
-      setting = fetch_client_settings(feature_name, global_settings)
+      setting = fetch_client_setting(feature_name, global_settings)
       if setting.present?
         ClientSettings.update_resource(setting.id, status_value, extra_data)
       else
