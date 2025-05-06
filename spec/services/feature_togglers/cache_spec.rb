@@ -6,44 +6,37 @@ RSpec.describe FeatureTogglers::Cache do
   let(:cache) { described_class.new }
 
   describe '#initialize' do
-    it 'starts with nil global_features' do
+    it 'starts with nil global_features and client_settings' do
       expect(cache.global_features).to be_nil
-    end
-
-    it 'starts with empty client_settings' do
-      expect(cache.client_settings('any_feature')).to be_nil
+      expect(cache.client_settings).to be_nil
     end
   end
 
-  describe '#set_global_features' do
-    let(:features) { %w[feature_a feature_b] }
-
-    it 'sets global_features' do
+  describe '#set_global_features and #global_features' do
+    it 'sets and retrieves global_features in a thread-safe way' do
+      features = ['feature1', 'feature2']
       cache.set_global_features(features)
       expect(cache.global_features).to eq(features)
     end
   end
 
   describe '#set_client_settings and #client_settings' do
-    let(:feature_name) { 'feature_x' }
-    let(:settings) { { status: 'enabled' } }
-
-    it 'sets and gets client settings by feature name' do
-      cache.set_client_settings(feature_name, settings)
-      expect(cache.client_settings(feature_name)).to eq(settings)
+    it 'sets and retrieves client_settings in a thread-safe way' do
+      settings = { 'status' => 'whitelist' }
+      cache.set_client_settings(settings)
+      expect(cache.client_settings).to eq(settings)
     end
   end
 
   describe '#clear' do
-    before do
-      cache.set_global_features(['some_feature'])
-      cache.set_client_settings('feature_y', { status: 'disabled' })
-    end
+    it 'resets global_features and client_settings to nil' do
+      cache.set_global_features(['something'])
+      cache.set_client_settings({ 'status' => 'whitelist' })
 
-    it 'clears global_features and client_settings' do
       cache.clear
+
       expect(cache.global_features).to be_nil
-      expect(cache.client_settings('feature_y')).to be_nil
+      expect(cache.client_settings).to be_nil
     end
   end
 end

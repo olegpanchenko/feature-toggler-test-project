@@ -49,17 +49,12 @@ module FeatureTogglers
     end
 
     def fetch_client_settings(feature_name, global_settings)
-      @cache.client_settings(feature_name) ||
-        find_client_settings(client_uuid, global_settings).tap do |settings|
-          @cache.set_client_settings(feature_name, settings)
-        end
-    end
+      if @cache.client_settings.nil?
+        all_settings = ClientSettings.where(client_uuid: client_uuid).to_a
+        @cache.set_client_settings(all_settings)
+      end
 
-    def find_client_settings(client_uuid, global_settings)
-      ClientSettings.find_by(
-        client_uuid: client_uuid,
-        global_settings: global_settings
-      )
+      @cache.client_settings.find { |cs| cs.feature_toggle_settings_id == global_settings.id }
     end
 
     def upsert_global_settings(feature_name, status_name, extra_data)

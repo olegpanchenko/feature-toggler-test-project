@@ -1,10 +1,8 @@
 module FeatureTogglers
   class Cache
-    attr_reader :global_features
-
     def initialize
       @global_features = nil
-      @client_settings = {}
+      @client_settings = nil
       @mutex = Mutex.new
     end
 
@@ -16,22 +14,18 @@ module FeatureTogglers
       @mutex.synchronize { @global_features }
     end
 
-    def global_features=(features)
-      set_global_features(features)
+    def set_client_settings(settings)
+      @mutex.synchronize { @client_settings = settings }
     end
 
-    def client_settings(feature_name)
-      @mutex.synchronize { @client_settings[feature_name] }
-    end
-
-    def set_client_settings(feature_name, settings)
-      @mutex.synchronize { @client_settings[feature_name] = settings }
+    def client_settings
+      @mutex.synchronize { @client_settings }
     end
 
     def clear
       @mutex.synchronize do
         @global_features = nil
-        @client_settings = {}
+        @client_settings = nil
       end
     end
   end
