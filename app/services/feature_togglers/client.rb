@@ -94,19 +94,15 @@ module FeatureTogglers
 
       return client_setting if assigned == current_percentage
 
-      previously_whitelisted = client_setting.whitelisted?
-
-      status = client_setting.status
-
-      if (assigned > current_percentage && previously_whitelisted) ||
-        (assigned < current_percentage && !previously_whitelisted)
-
-        status = is_whitelisted ?
-         FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
-         FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
+      new_status = if client_setting.whitelisted?
+        client_setting.status
+      else
+        is_whitelisted ?
+          FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
+          FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
       end
 
-      FeatureTogglers::ClientSettings.update_resource(client_setting.id, status, {
+      FeatureTogglers::ClientSettings.update_resource(client_setting.id, new_status, {
         'generated_by_rollout' => true,
         'assigned_by_percentage' => global_setting.rollout_percentage
       })
