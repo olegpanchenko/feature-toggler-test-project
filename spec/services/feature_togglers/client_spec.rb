@@ -266,7 +266,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
                 ].include?(status)
               }
             )
-            expect(setting.extra_data["generated_by_rollout"]).to be(true).or be_truthy
+            expect(setting.generated_by_rollout?).to be(true).or be_truthy
           end
 
           it 'assigns whitelisted clients approximately according to rollout percentage' do

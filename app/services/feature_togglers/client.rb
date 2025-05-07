@@ -49,18 +49,18 @@ module FeatureTogglers
     private
 
     def rollout_enabled?(global_settings)
-      global_settings.enabled? && global_settings.extra_data&.key?('rollout_percentage')
+      global_settings.enabled? && global_settings.rollout_percentage
     end
 
     def handle_percentage_rollout(global_settings, client_settings)
-      current_percentage = global_settings.extra_data['rollout_percentage'].to_i
+      current_percentage = global_settings.rollout_percentage
       should_be_whitelisted = rollout_whitelisted?(global_settings)
 
       if client_settings.nil?
         return create_percentage_based_settings(global_settings, should_be_whitelisted)
       end
 
-      if client_settings.extra_data&.key?('generated_by_rollout')
+      if client_settings.generated_by_rollout?
         return update_percentage_based_settings(client_settings, global_settings, should_be_whitelisted)
       end
 
@@ -68,7 +68,7 @@ module FeatureTogglers
     end
 
     def rollout_whitelisted?(global_settings)
-      percentage = global_settings.extra_data['rollout_percentage'].to_i
+      percentage = global_settings.rollout_percentage
       return false if percentage <= 0 || percentage > 100
 
       seed = "#{client_uuid}-#{global_settings.name}".hash
@@ -82,15 +82,15 @@ module FeatureTogglers
 
       FeatureTogglers::ClientSettings.create_resource(global_settings.id, client_uuid, status, {
         'generated_by_rollout' => true,
-        'assigned_by_percentage' => global_settings.extra_data['rollout_percentage'].to_i
+        'assigned_by_percentage' => global_settings.rollout_percentage
       })
 
       fetch_client_setting(global_settings.name, global_settings)
     end
 
     def update_percentage_based_settings(client_settings, global_settings, is_whitelisted)
-      current_percentage = global_settings.extra_data['rollout_percentage'].to_i
-      assigned = client_settings.extra_data['assigned_by_percentage'].to_i
+      current_percentage = global_settings.rollout_percentage
+      assigned = client_settings.assigned_by_percentage
 
       return client_settings if assigned == current_percentage
 
@@ -110,7 +110,7 @@ module FeatureTogglers
 
       FeatureTogglers::ClientSettings.update_resource(client_settings.id, status, {
         'generated_by_rollout' => true,
-        'assigned_by_percentage' => global_settings.extra_data['rollout_percentage'].to_i
+        'assigned_by_percentage' => global_settings.rollout_percentage
       })
 
       fetch_client_setting(global_settings.name, global_settings)
