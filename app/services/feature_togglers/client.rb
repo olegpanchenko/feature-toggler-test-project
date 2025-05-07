@@ -14,6 +14,10 @@ module FeatureTogglers
       return false if global_settings.nil? || global_settings.disabled_hard?
 
       client_settings = fetch_client_setting(feature_name, global_settings)
+      if client_settings.nil? && global_settings.enabled? && global_settings.extra_data&.key?('rollout_percentage')
+        client_settings = create_percentage_based_settings(feature_name, global_settings)
+      end
+
       return client_settings&.whitelisted? || (global_settings.enabled? && client_settings.nil?)
     end
 
@@ -42,6 +46,31 @@ module FeatureTogglers
     end
 
     private
+
+    def create_percentage_based_settings(feature_name, global_settings)
+      percentage = global_settings.extra_data['rollout_percentage'].to_i
+      return nil if percentage <= 0 || percentage > 100
+
+      seed = "#{client_uuid}-#{feature_name}".hash
+      random = Random.new(seed)
+      is_whitelisted = random.rand(100) < percentage
+
+      status = is_whitelisted ?
+        Configuration::STATUSES[:client][:whitelisted] :
+        Configuration::STATUSES[:client][:blacklisted]
+
+      client_settings = ClientSettings.create!(
+        global_settings: global_settings,
+        client_uuid: client_uuid,
+        status: status,
+        extra_data: {
+          'generated_by_rollout' => true,
+          'assigned_by_percentage' => percentage
+        }
+      )
+
+      fetch_client_setting(feature_name, global_settings)
+    end
 
     def fetch_global_setting(feature_name)
       if @cache.global_features.nil?

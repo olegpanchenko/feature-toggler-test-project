@@ -3,8 +3,9 @@ require 'rails_helper'
 RSpec.describe FeatureTogglers::Client, type: :model do
   let(:client_uuid) { '123' }
   let(:feature_name) { 'main_feature' }
+  let(:extra_data) { {} }
   let(:client) { described_class.new(client_uuid: client_uuid) }
-  let(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled] }
+  let(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled], extra_data: extra_data }
 
   describe '#enabled?' do
     subject { client.enabled?(feature_name) }
@@ -215,6 +216,83 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
+    end
+  end
+
+  context "Rollout strategy" do
+    [5, 10, 25].each do |percentage|
+      context "at #{percentage}%" do
+        let(:rollout_percentage) { percentage }
+        let(:extra_data) {
+          {
+            rollout_percentage: rollout_percentage
+          }
+        }
+        let!(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled], extra_data: extra_data }
+
+        context "when client_settings is present" do
+          subject { client.enabled?(feature_name) }
+
+          let!(:client_feature_settings) {
+            create :client_feature_settings,
+              client_uuid: client_uuid,
+              status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
+              global_settings: global_feature_settings
+          }
+
+          it "does not create a new client_settings record" do
+            expect {
+              subject
+            }.not_to change(FeatureTogglers::ClientSettings, :count)
+          end
+        end
+
+        context "when client_settings is blank" do
+          subject { client.enabled?(feature_name) }
+
+          it "creates a new client_settings record with whitelisted or blacklisted status" do
+            expect {
+              subject
+            }.to change(FeatureTogglers::ClientSettings, :count).by(1)
+
+            setting = FeatureTogglers::ClientSettings.last
+            expect(setting.client_uuid).to eq(client_uuid)
+            expect(setting.feature_toggle_settings_id).to eq(global_feature_settings.id)
+            expect(setting.status).to(
+              satisfy { |status|
+                [
+                  FeatureTogglers::ClientSettings::STATUS[:whitelisted],
+                  FeatureTogglers::ClientSettings::STATUS[:blacklisted]
+                ].include?(status)
+              }
+            )
+            expect(setting.extra_data["generated_by_rollout"]).to be(true).or be_truthy
+          end
+
+          it 'assigns whitelisted clients approximately according to rollout percentage' do
+            whitelist_count = 0
+            test_count = 500
+
+            test_count.times do |i|
+              client_uuid = "test-client-#{i}"
+              client = FeatureTogglers::Client.new(client_uuid: client_uuid)
+              client.enabled?(feature_name)
+
+              setting = FeatureTogglers::ClientSettings.find_by(client_uuid: client_uuid)
+              expect(setting).not_to be_nil
+
+              if setting.status == FeatureTogglers::ClientSettings::STATUS[:whitelisted]
+                whitelist_count += 1
+              end
+            end
+
+            actual_percentage = (whitelist_count.to_f / test_count * 100).round
+            # puts "Observed: #{actual_percentage}%, Expected: #{rollout_percentage}%"
+
+            expect(actual_percentage).to be_within(5).of(rollout_percentage)
+          end
+        end
+      end
     end
   end
 end
