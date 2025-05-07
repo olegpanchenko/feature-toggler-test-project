@@ -96,16 +96,14 @@ module FeatureTogglers
 
       previously_whitelisted = client_setting.whitelisted?
 
-      if assigned > current_percentage && previously_whitelisted
-        status = is_whitelisted ?
-          FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
-          FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
-      end
+      status = client_setting.status
 
-      if assigned < current_percentage && !previously_whitelisted
+      if (assigned > current_percentage && previously_whitelisted) ||
+        (assigned < current_percentage && !previously_whitelisted)
+
         status = is_whitelisted ?
-          FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
-          FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
+         FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
+         FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
       end
 
       FeatureTogglers::ClientSettings.update_resource(client_setting.id, status, {
