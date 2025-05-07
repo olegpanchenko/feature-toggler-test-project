@@ -22,13 +22,13 @@ RSpec.describe FeatureTogglers::Client, type: :model do
         global_feature_setting.update!(status: global_status)
       end
 
-      context 'when global setting are disabled_hard' do
+      context 'when global setting is disabled_hard' do
         let(:global_status) { FeatureTogglers::GlobalSettings::STATUS[:disabled_hard] }
 
         it { is_expected.to be_falsey }
       end
 
-      context 'when global setting are disabled' do
+      context 'when global setting is disabled' do
         let(:global_status) { FeatureTogglers::GlobalSettings::STATUS[:disabled] }
         let!(:client_feature_settings) {
           create :client_feature_settings,
@@ -56,7 +56,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
         end
       end
 
-      context 'when global setting are enabled' do
+      context 'when global setting is enabled' do
         let(:global_status) { FeatureTogglers::GlobalSettings::STATUS[:enabled] }
 
         let!(:client_feature_settings) {
