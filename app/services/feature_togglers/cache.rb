@@ -22,7 +22,7 @@ module FeatureTogglers
       @mutex.synchronize { @client_settings }
     end
 
-    def clear
+    def clear!
       @mutex.synchronize do
         @global_features = nil
         @client_settings = nil

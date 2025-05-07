@@ -33,7 +33,7 @@ RSpec.describe FeatureTogglers::Cache do
       cache.set_global_features(['something'])
       cache.set_client_settings({ 'status' => 'whitelist' })
 
-      cache.clear
+      cache.clear!
 
       expect(cache.global_features).to be_nil
       expect(cache.client_settings).to be_nil

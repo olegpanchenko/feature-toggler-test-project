@@ -17,8 +17,8 @@ module FeatureTogglers
       return client_settings&.whitelisted? || (global_settings.enabled? && client_settings.nil?)
     end
 
-    def refresh_settings
-      @cache.clear
+    def refresh_settings!
+      @cache.clear!
     end
 
     Configuration::STATUSES[:global].each do |status_name, status_value|
@@ -26,7 +26,7 @@ module FeatureTogglers
 
       define_method("#{verb}_global_setting!") do |feature_name, extra_data: {}|
         upsert_global_setting(feature_name, status_name, extra_data).tap do
-          refresh_settings
+          refresh_settings!
         end
       end
     end
@@ -36,7 +36,7 @@ module FeatureTogglers
 
       define_method("#{verb}_client_setting!") do |feature_name, extra_data: {}|
         upsert_client_setting(feature_name, client_uuid, status_name, extra_data).tap do
-          refresh_settings
+          refresh_settings!
         end
       end
     end
