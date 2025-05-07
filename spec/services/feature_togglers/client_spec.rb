@@ -5,80 +5,80 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   let(:feature_name) { 'main_feature' }
   let(:extra_data) { {} }
   let(:client) { described_class.new(client_uuid: client_uuid) }
-  let(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled], extra_data: extra_data }
+  let(:global_feature_setting) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled], extra_data: extra_data }
 
   describe '#enabled?' do
     subject { client.enabled?(feature_name) }
 
-    context 'when global settings do not exist' do
+    context 'when global setting do not exist' do
       let(:feature_name) { 'new_feature' }
 
       it { is_expected.to be_falsey }
     end
 
-    context 'when global settings exists' do
+    context 'when global setting exists' do
       before do
-        global_feature_settings
-        global_feature_settings.update!(status: global_status)
+        global_feature_setting
+        global_feature_setting.update!(status: global_status)
       end
 
-      context 'when global settings are disabled_hard' do
+      context 'when global setting are disabled_hard' do
         let(:global_status) { FeatureTogglers::GlobalSettings::STATUS[:disabled_hard] }
 
         it { is_expected.to be_falsey }
       end
 
-      context 'when global settings are disabled' do
+      context 'when global setting are disabled' do
         let(:global_status) { FeatureTogglers::GlobalSettings::STATUS[:disabled] }
         let!(:client_feature_settings) {
           create :client_feature_settings,
             client_uuid: client_uuid,
             status: status,
-            global_settings: global_feature_settings
+            global_settings: global_feature_setting
         }
 
-        context "when client_settings is whitelisted" do
+        context 'when client_setting is whitelisted' do
           let(:status) { FeatureTogglers::ClientSettings::STATUS[:whitelisted] }
 
           it { is_expected.to be_truthy }
         end
 
-        context "when client_settings is blacklisted" do
+        context 'when client_setting is blacklisted' do
           let(:status) { FeatureTogglers::ClientSettings::STATUS[:blacklisted] }
 
           it { is_expected.to be_falsey }
         end
 
-        context "when client_settings is disabled_by_client" do
+        context 'when client_setting is disabled_by_client' do
           let(:status) { FeatureTogglers::ClientSettings::STATUS[:disabled_by_client] }
 
           it { is_expected.to be_falsey }
         end
       end
 
-      context 'when global settings are enabled' do
+      context 'when global setting are enabled' do
         let(:global_status) { FeatureTogglers::GlobalSettings::STATUS[:enabled] }
 
         let!(:client_feature_settings) {
           create :client_feature_settings,
             client_uuid: client_uuid,
             status: status,
-            global_settings: global_feature_settings
+            global_settings: global_feature_setting
         }
 
-        context "when client_settings is whitelisted" do
+        context 'when client_setting is whitelisted' do
           let(:status) { FeatureTogglers::ClientSettings::STATUS[:whitelisted] }
 
           it { is_expected.to be_truthy }
         end
 
-        context "when client_settings is blacklisted" do
+        context 'when client_setting is blacklisted' do
           let(:status) { FeatureTogglers::ClientSettings::STATUS[:blacklisted] }
 
           it { is_expected.to be_falsey }
         end
 
-        context "when client_settings is disabled_by_client" do
+        context 'when client_setting is disabled_by_client' do
           let(:status) { FeatureTogglers::ClientSettings::STATUS[:disabled_by_client] }
 
           it { is_expected.to be_falsey }
@@ -90,7 +90,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   describe '#enable_global_setting!' do
     let(:feature_name) { 'foobar' }
 
-    it 'creates global settings with a enabled status' do
+    it 'creates global setting with an enabled status' do
       expect(client.enabled?(feature_name)).to be(false)
       result = client.enable_global_setting!(feature_name)
 
@@ -98,8 +98,8 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       expect(client.enabled?(feature_name)).to be(true)
     end
 
-    it 'updates global settings with a enabled status' do
-      global_feature_settings = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:disabled]
+    it 'updates global setting with an enabled status' do
+      global_feature_setting = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:disabled]
       expect(client.enabled?(feature_name)).to be(false)
       result = client.enable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
 
@@ -111,7 +111,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   describe '#disable_global_setting!' do
     let(:feature_name) { 'foobar' }
 
-    it 'creates global settings with a disabled status' do
+    it 'creates global setting with a disabled status' do
       expect(client.enabled?(feature_name)).to be(false)
       result = client.disable_global_setting!(feature_name)
 
@@ -119,8 +119,8 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       expect(client.enabled?(feature_name)).to be(false)
     end
 
-    it 'updates global settings with a disabled status' do
-      global_feature_settings = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
+    it 'updates global setting with a disabled status' do
+      global_feature_setting = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
       expect(client.enabled?(feature_name)).to be(true)
       result = client.disable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
 
@@ -129,10 +129,10 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     end
   end
 
-  describe '#disabled_hard_global_settings!' do
+  describe '#disabled_hard_global_setting!' do
     let(:feature_name) { 'foobar' }
 
-    it 'creates global settings with a disabled_hard status' do
+    it 'creates global setting with a disabled_hard status' do
       expect(client.enabled?(feature_name)).to be(false)
       result = client.disable_global_setting!(feature_name)
 
@@ -140,8 +140,8 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       expect(client.enabled?(feature_name)).to be(false)
     end
 
-    it 'updates global settings with a disabled_hard status' do
-      global_feature_settings = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
+    it 'updates global setting with a disabled_hard status' do
+      global_feature_setting = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
       expect(client.enabled?(feature_name)).to be(true)
       result = client.disable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
 
@@ -151,19 +151,19 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   end
 
   describe '#whitelist_client_setting!' do
-    it 'creates client settings with a whitelisted status' do
-      expect(client.enabled?(global_feature_settings.name)).to be(true)
-      result = client.whitelist_client_setting!(global_feature_settings.name)
+    it 'creates client setting with a whitelisted status' do
+      expect(client.enabled?(global_feature_setting.name)).to be(true)
+      result = client.whitelist_client_setting!(global_feature_setting.name)
 
       expect(result[:success]).to be(true)
-      expect(client.enabled?(global_feature_settings.name)).to be(true)
+      expect(client.enabled?(global_feature_setting.name)).to be(true)
     end
 
-    it 'updates client settings with a whitelisted status' do
+    it 'updates client setting with a whitelisted status' do
       create :client_feature_settings,
             client_uuid: client_uuid,
             status: FeatureTogglers::ClientSettings::STATUS[:blacklisted],
-            global_settings: global_feature_settings
+            global_settings: global_feature_setting
 
       expect(client.enabled?(feature_name)).to be(false)
       result = client.whitelist_client_setting!(feature_name, extra_data: { custom_data: 'value' })
@@ -174,19 +174,19 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   end
 
   describe '#blacklist_client_setting!' do
-    it 'creates client settings with a blacklisted status' do
-      expect(client.enabled?(global_feature_settings.name)).to be(true)
-      result = client.blacklist_client_setting!(global_feature_settings.name)
+    it 'creates client setting with a blacklisted status' do
+      expect(client.enabled?(global_feature_setting.name)).to be(true)
+      result = client.blacklist_client_setting!(global_feature_setting.name)
 
       expect(result[:success]).to be(true)
-      expect(client.enabled?(global_feature_settings.name)).to be(false)
+      expect(client.enabled?(global_feature_setting.name)).to be(false)
     end
 
-    it 'updates client settings with a blacklisted status' do
+    it 'updates client setting with a blacklisted status' do
       create :client_feature_settings,
             client_uuid: client_uuid,
             status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-            global_settings: global_feature_settings
+            global_settings: global_feature_setting
 
       expect(client.enabled?(feature_name)).to be(true)
       result = client.blacklist_client_setting!(feature_name, extra_data: { custom_data: 'value' })
@@ -197,19 +197,19 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   end
 
   describe '#disable_by_client_client_setting  !' do
-    it 'creates client settings with a disabled_by_client status' do
-      expect(client.enabled?(global_feature_settings.name)).to be(true)
-      result = client.disable_by_client_client_setting!(global_feature_settings.name)
+    it 'creates client setting with a disabled_by_client status' do
+      expect(client.enabled?(global_feature_setting.name)).to be(true)
+      result = client.disable_by_client_client_setting!(global_feature_setting.name)
 
       expect(result[:success]).to be(true)
-      expect(client.enabled?(global_feature_settings.name)).to be(false)
+      expect(client.enabled?(global_feature_setting.name)).to be(false)
     end
 
-    it 'updates client settings with a disabled_by_client status' do
+    it 'updates client setting with a disabled_by_client status' do
       create :client_feature_settings,
             client_uuid: client_uuid,
             status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-            global_settings: global_feature_settings
+            global_settings: global_feature_setting
 
       expect(client.enabled?(feature_name)).to be(true)
       result = client.disable_by_client_client_setting!(feature_name, extra_data: { custom_data: 'value' })
@@ -219,7 +219,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     end
   end
 
-  context "Rollout strategy" do
+  context 'Rollout strategy' do
     [5, 10, 25].each do |percentage|
       context "at #{percentage}%" do
         let(:rollout_percentage) { percentage }
@@ -228,36 +228,36 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             rollout_percentage: rollout_percentage
           }
         }
-        let!(:global_feature_settings) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled], extra_data: extra_data }
+        let!(:global_feature_setting) { create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled], extra_data: extra_data }
 
-        context "when client_settings is present" do
+        context 'when client_setting is present' do
           subject { client.enabled?(feature_name) }
 
           let!(:client_feature_settings) {
             create :client_feature_settings,
               client_uuid: client_uuid,
               status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-              global_settings: global_feature_settings
+              global_settings: global_feature_setting
           }
 
-          it "does not create a new client_settings record" do
+          it 'does not create a new client_setting record' do
             expect {
               subject
             }.not_to change(FeatureTogglers::ClientSettings, :count)
           end
         end
 
-        context "when client_settings is blank" do
+        context 'when client_setting is blank' do
           subject { client.enabled?(feature_name) }
 
-          it "creates a new client_settings record with whitelisted or blacklisted status" do
+          it 'creates a new client_setting record with whitelisted or blacklisted status' do
             expect {
               subject
             }.to change(FeatureTogglers::ClientSettings, :count).by(1)
 
             setting = FeatureTogglers::ClientSettings.last
             expect(setting.client_uuid).to eq(client_uuid)
-            expect(setting.feature_toggle_settings_id).to eq(global_feature_settings.id)
+            expect(setting.feature_toggle_settings_id).to eq(global_feature_setting.id)
             expect(setting.status).to(
               satisfy { |status|
                 [
@@ -269,7 +269,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             expect(setting.generated_by_rollout?).to be(true).or be_truthy
           end
 
-          it 'assigns whitelisted clients approximately according to rollout percentage' do
+          it 'assigns whitelisted clients based on rollout percentage' do
             whitelist_count = 0
             test_count = 500
 
@@ -294,22 +294,22 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       end
     end
 
-    context "increase rollout_percentage" do
+    context 'increase rollout_percentage' do
       let(:rollout_percentage) { 5 }
       let(:new_rollout_percentage) { 25 }
       let(:test_count) { 200 }
 
       before do
-        # save global_feature_settings
-        global_feature_settings
-        # generate 5 whitelisted and 95 blacklisted client_settings
+        # persist global_feature_settings
+        global_feature_setting
+        # create 5 whitelisted and 95 blacklisted client_settings
         clients_count = 100
         clients_count.times do |i|
           status = i < rollout_percentage ? FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] : FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
           create(:client_feature_settings,
             client_uuid: "test-client-#{i}",
             status: status,
-            global_settings: global_feature_settings,
+            global_settings: global_feature_setting,
             extra_data: {
               'generated_by_rollout' => true,
               'assigned_by_percentage' => rollout_percentage
@@ -317,7 +317,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
           )
         end
         # increase rollout_percentage
-        global_feature_settings.update!(extra_data: {rollout_percentage: new_rollout_percentage})
+        global_feature_setting.update!(extra_data: {rollout_percentage: new_rollout_percentage})
         # collect existing whitelisted clients uuids
         @whitelisted_clients_uuids = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:whitelisted]).pluck(:client_uuid)
 
@@ -328,13 +328,13 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       end
 
-      it "preserves existing whitelisted clients when rollout percentage increases" do
+      it 'retains previously whitelisted clients when increasing rollout percentage' do
         statuses = FeatureTogglers::ClientSettings.where(client_uuid: @whitelisted_clients_uuids).pluck(:status).uniq
         expect(statuses.size).to eq(1)
         expect(statuses.first).to eq(FeatureTogglers::ClientSettings::STATUS[:whitelisted])
       end
 
-      it "assigns whitelisted clients approximately according to rollout percentage" do
+      it 'assigns whitelisted clients based on rollout percentage' do
         total_count = FeatureTogglers::ClientSettings.count
         whitelist_count = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:whitelisted]).count
         actual_percentage = (whitelist_count.to_f / total_count * 100).round
@@ -343,22 +343,22 @@ RSpec.describe FeatureTogglers::Client, type: :model do
       end
     end
 
-    context "decrease rollout_percentage" do
+    context 'decrease rollout_percentage' do
       let(:rollout_percentage) { 25 }
       let(:new_rollout_percentage) { 5 }
       let(:test_count) { 200 }
 
       before do
-        # save global_feature_settings
-        global_feature_settings
-        # generate 25 whitelisted and 75 blacklisted client_settings
+        # persist global_feature_settings
+        global_feature_setting
+        # create 25 whitelisted and 75 blacklisted client_settings
         clients_count = 100
         clients_count.times do |i|
           status = i < rollout_percentage ? FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] : FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
           create(:client_feature_settings,
               client_uuid: "test-client-#{i}",
               status: status,
-              global_settings: global_feature_settings,
+              global_settings: global_feature_setting,
               extra_data: {
                 'generated_by_rollout' => true,
                 'assigned_by_percentage' => rollout_percentage
@@ -366,7 +366,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             )
         end
         # decrease rollout_percentage
-        global_feature_settings.update!(extra_data: {rollout_percentage: new_rollout_percentage})
+        global_feature_setting.update!(extra_data: {rollout_percentage: new_rollout_percentage})
 
         # collect existing blacklisted clients uuids
         @blacklisted_clients_uuids = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:blacklisted]).pluck(:client_uuid)
@@ -377,13 +377,13 @@ RSpec.describe FeatureTogglers::Client, type: :model do
         end
       end
 
-      it "preserves existing blacklisted clients when rollout percentage decreases" do
+      it 'retains previously blacklisted clients when decreasing rollout percentage preserves existing' do
         statuses = FeatureTogglers::ClientSettings.where(client_uuid: @blacklisted_clients_uuids).pluck(:status).uniq
         expect(statuses.size).to eq(1)
         expect(statuses.first).to eq(FeatureTogglers::ClientSettings::STATUS[:blacklisted])
       end
 
-      it "assigns whitelisted clients approximately according to rollout percentage" do
+      it 'assigns whitelisted clients based on rollout percentage' do
         total_count = FeatureTogglers::ClientSettings.count
         whitelist_count = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:whitelisted]).count
         actual_percentage = (whitelist_count.to_f / total_count * 100).round
