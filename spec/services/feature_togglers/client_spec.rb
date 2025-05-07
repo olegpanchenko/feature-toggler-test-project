@@ -105,6 +105,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(true)
+      expect(global_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
     end
   end
 
@@ -126,6 +127,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
+      expect(global_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
     end
   end
 
@@ -147,6 +149,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
+      expect(global_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
     end
   end
 
@@ -160,7 +163,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     end
 
     it 'updates client setting with a whitelisted status' do
-      create :client_feature_settings,
+      client_feature_setting =create :client_feature_settings,
             client_uuid: client_uuid,
             status: FeatureTogglers::ClientSettings::STATUS[:blacklisted],
             global_settings: global_feature_setting
@@ -170,6 +173,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(true)
+      expect(client_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
     end
   end
 
@@ -183,7 +187,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     end
 
     it 'updates client setting with a blacklisted status' do
-      create :client_feature_settings,
+      client_feature_setting = create :client_feature_settings,
             client_uuid: client_uuid,
             status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
             global_settings: global_feature_setting
@@ -193,6 +197,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
+      expect(client_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
     end
   end
 
@@ -206,7 +211,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
     end
 
     it 'updates client setting with a disabled_by_client status' do
-      create :client_feature_settings,
+      client_feature_setting = create :client_feature_settings,
             client_uuid: client_uuid,
             status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
             global_settings: global_feature_setting
@@ -216,6 +221,7 @@ RSpec.describe FeatureTogglers::Client, type: :model do
 
       expect(result[:success]).to be(true)
       expect(client.enabled?(feature_name)).to be(false)
+      expect(client_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
     end
   end
 
