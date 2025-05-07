@@ -10,16 +10,16 @@ module FeatureTogglers
     end
 
     def enabled?(feature_name)
-      global_settings = fetch_global_setting(feature_name)
-      return false if global_settings.nil? || global_settings.disabled_hard?
+      global_setting = fetch_global_setting(feature_name)
+      return false if global_setting.nil? || global_setting.disabled_hard?
 
-      client_settings = fetch_client_setting(feature_name, global_settings)
+      client_setting = fetch_client_setting(feature_name, global_setting)
 
-      if rollout_enabled?(global_settings)
-        client_settings = handle_percentage_rollout(global_settings, client_settings)
+      if rollout_enabled?(global_setting)
+        client_setting = handle_percentage_rollout(global_setting, client_setting)
       end
 
-      client_settings&.whitelisted? || (global_settings.enabled? && client_settings.nil?)
+      client_setting&.whitelisted? || (global_setting.enabled? && client_setting.nil?)
     end
 
     def refresh_settings!
@@ -48,53 +48,53 @@ module FeatureTogglers
 
     private
 
-    def rollout_enabled?(global_settings)
-      global_settings.enabled? && global_settings.rollout_percentage
+    def rollout_enabled?(global_setting)
+      global_setting.enabled? && global_setting.rollout_percentage
     end
 
-    def handle_percentage_rollout(global_settings, client_settings)
-      current_percentage = global_settings.rollout_percentage
-      should_be_whitelisted = rollout_whitelisted?(global_settings)
+    def handle_percentage_rollout(global_setting, client_setting)
+      current_percentage = global_setting.rollout_percentage
+      should_be_whitelisted = rollout_whitelisted?(global_setting)
 
-      if client_settings.nil?
-        return create_percentage_based_settings(global_settings, should_be_whitelisted)
+      if client_setting.nil?
+        return create_percentage_based_setting(global_setting, should_be_whitelisted)
       end
 
-      if client_settings.generated_by_rollout?
-        return update_percentage_based_settings(client_settings, global_settings, should_be_whitelisted)
+      if client_setting.generated_by_rollout?
+        return update_percentage_based_setting(client_setting, global_setting, should_be_whitelisted)
       end
 
-      client_settings
+      client_setting
     end
 
-    def rollout_whitelisted?(global_settings)
-      percentage = global_settings.rollout_percentage
+    def rollout_whitelisted?(global_setting)
+      percentage = global_setting.rollout_percentage
       return false if percentage <= 0 || percentage > 100
 
-      seed = "#{client_uuid}-#{global_settings.name}".hash
+      seed = "#{client_uuid}-#{global_setting.name}".hash
       Random.new(seed).rand(100) < percentage
     end
 
-    def create_percentage_based_settings(global_settings, is_whitelisted)
+    def create_percentage_based_setting(global_setting, is_whitelisted)
       status = is_whitelisted ?
         FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
         FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
 
-      FeatureTogglers::ClientSettings.create_resource(global_settings.id, client_uuid, status, {
+      FeatureTogglers::ClientSettings.create_resource(global_setting.id, client_uuid, status, {
         'generated_by_rollout' => true,
-        'assigned_by_percentage' => global_settings.rollout_percentage
+        'assigned_by_percentage' => global_setting.rollout_percentage
       })
 
-      fetch_client_setting(global_settings.name, global_settings)
+      fetch_client_setting(global_setting.name, global_setting)
     end
 
-    def update_percentage_based_settings(client_settings, global_settings, is_whitelisted)
-      current_percentage = global_settings.rollout_percentage
-      assigned = client_settings.assigned_by_percentage
+    def update_percentage_based_setting(client_setting, global_setting, is_whitelisted)
+      current_percentage = global_setting.rollout_percentage
+      assigned = client_setting.assigned_by_percentage
 
-      return client_settings if assigned == current_percentage
+      return client_setting if assigned == current_percentage
 
-      previously_whitelisted = client_settings.whitelisted?
+      previously_whitelisted = client_setting.whitelisted?
 
       if assigned > current_percentage && previously_whitelisted
         status = is_whitelisted ?
@@ -108,12 +108,12 @@ module FeatureTogglers
           FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
       end
 
-      FeatureTogglers::ClientSettings.update_resource(client_settings.id, status, {
+      FeatureTogglers::ClientSettings.update_resource(client_setting.id, status, {
         'generated_by_rollout' => true,
-        'assigned_by_percentage' => global_settings.rollout_percentage
+        'assigned_by_percentage' => global_setting.rollout_percentage
       })
 
-      fetch_client_setting(global_settings.name, global_settings)
+      fetch_client_setting(global_setting.name, global_setting)
     end
 
     def fetch_global_setting(feature_name)
@@ -125,22 +125,22 @@ module FeatureTogglers
       @cache.global_features.find { |gs| gs.name == feature_name }
     end
 
-    def fetch_client_setting(feature_name, global_settings)
+    def fetch_client_setting(feature_name, global_setting)
       if @cache.client_settings.nil?
         all_settings = FeatureTogglers::ClientSettings.where(client_uuid: client_uuid).to_a
         @cache.set_client_settings(all_settings)
       end
 
-      @cache.client_settings.find { |cs| cs.feature_toggle_settings_id == global_settings.id }
+      @cache.client_settings.find { |cs| cs.feature_toggle_settings_id == global_setting.id }
     end
 
     def upsert_global_setting(feature_name, status_name, extra_data)
       status_value = FeatureTogglers::Configuration::STATUSES[:global][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
-      global_settings = fetch_global_setting(feature_name)
-      if global_settings.present?
-        FeatureTogglers::GlobalSettings.update_resource(global_settings.id, status_value, extra_data)
+      global_setting = fetch_global_setting(feature_name)
+      if global_setting.present?
+        FeatureTogglers::GlobalSettings.update_resource(global_setting.id, status_value, extra_data)
       else
         FeatureTogglers::GlobalSettings.create_resource(feature_name, status_value, extra_data)
       end
@@ -150,14 +150,14 @@ module FeatureTogglers
       status_value = FeatureTogglers::Configuration::STATUSES[:client][status_name.to_sym]
       return { success: false, error: "Invalid status: #{status_name}" } unless status_value
 
-      global_settings = fetch_global_setting(feature_name)
-      return { success: false, error: "Invalid feature name: #{feature_name}" } unless global_settings
+      global_setting = fetch_global_setting(feature_name)
+      return { success: false, error: "Invalid feature name: #{feature_name}" } unless global_setting
 
-      setting = fetch_client_setting(feature_name, global_settings)
+      setting = fetch_client_setting(feature_name, global_setting)
       if setting.present?
         FeatureTogglers::ClientSettings.update_resource(setting.id, status_value, extra_data)
       else
-        FeatureTogglers::ClientSettings.create_resource(global_settings.id, client_uuid, status_value, extra_data)
+        FeatureTogglers::ClientSettings.create_resource(global_setting.id, client_uuid, status_value, extra_data)
       end
     end
   end
