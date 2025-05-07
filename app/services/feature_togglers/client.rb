@@ -14,11 +14,12 @@ module FeatureTogglers
       return false if global_settings.nil? || global_settings.disabled_hard?
 
       client_settings = fetch_client_setting(feature_name, global_settings)
-      if client_settings.nil? && global_settings.enabled? && global_settings.extra_data&.key?('rollout_percentage')
-        client_settings = create_percentage_based_settings(feature_name, global_settings)
+
+      if rollout_enabled?(global_settings)
+        client_settings = handle_percentage_rollout(global_settings, client_settings)
       end
 
-      return client_settings&.whitelisted? || (global_settings.enabled? && client_settings.nil?)
+      client_settings&.whitelisted? || (global_settings.enabled? && client_settings.nil?)
     end
 
     def refresh_settings!
@@ -47,29 +48,72 @@ module FeatureTogglers
 
     private
 
-    def create_percentage_based_settings(feature_name, global_settings)
+    def rollout_enabled?(global_settings)
+      global_settings.enabled? && global_settings.extra_data&.key?('rollout_percentage')
+    end
+
+    def handle_percentage_rollout(global_settings, client_settings)
+      current_percentage = global_settings.extra_data['rollout_percentage'].to_i
+      should_be_whitelisted = rollout_whitelisted?(global_settings)
+
+      if client_settings.nil?
+        return create_percentage_based_settings(global_settings, should_be_whitelisted)
+      end
+
+      if client_settings.extra_data&.key?('generated_by_rollout')
+        return update_percentage_based_settings(client_settings, global_settings, should_be_whitelisted)
+      end
+
+      client_settings
+    end
+
+    def rollout_whitelisted?(global_settings)
       percentage = global_settings.extra_data['rollout_percentage'].to_i
-      return nil if percentage <= 0 || percentage > 100
+      return false if percentage <= 0 || percentage > 100
 
-      seed = "#{client_uuid}-#{feature_name}".hash
-      random = Random.new(seed)
-      is_whitelisted = random.rand(100) < percentage
+      seed = "#{client_uuid}-#{global_settings.name}".hash
+      Random.new(seed).rand(100) < percentage
+    end
 
+    def create_percentage_based_settings(global_settings, is_whitelisted)
       status = is_whitelisted ?
         FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
         FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
 
-      client_settings = FeatureTogglers::ClientSettings.create!(
-        global_settings: global_settings,
-        client_uuid: client_uuid,
-        status: status,
-        extra_data: {
-          'generated_by_rollout' => true,
-          'assigned_by_percentage' => percentage
-        }
-      )
+      FeatureTogglers::ClientSettings.create_resource(global_settings.id, client_uuid, status, {
+        'generated_by_rollout' => true,
+        'assigned_by_percentage' => global_settings.extra_data['rollout_percentage'].to_i
+      })
 
-      fetch_client_setting(feature_name, global_settings)
+      fetch_client_setting(global_settings.name, global_settings)
+    end
+
+    def update_percentage_based_settings(client_settings, global_settings, is_whitelisted)
+      current_percentage = global_settings.extra_data['rollout_percentage'].to_i
+      assigned = client_settings.extra_data['assigned_by_percentage'].to_i
+
+      return client_settings if assigned == current_percentage
+
+      previously_whitelisted = client_settings.whitelisted?
+
+      if assigned > current_percentage && previously_whitelisted
+        status = is_whitelisted ?
+          FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
+          FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
+      end
+
+      if assigned < current_percentage && !previously_whitelisted
+        status = is_whitelisted ?
+          FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] :
+          FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
+      end
+
+      FeatureTogglers::ClientSettings.update_resource(client_settings.id, status, {
+        'generated_by_rollout' => true,
+        'assigned_by_percentage' => global_settings.extra_data['rollout_percentage'].to_i
+      })
+
+      fetch_client_setting(global_settings.name, global_settings)
     end
 
     def fetch_global_setting(feature_name)

@@ -287,11 +287,108 @@ RSpec.describe FeatureTogglers::Client, type: :model do
             end
 
             actual_percentage = (whitelist_count.to_f / test_count * 100).round
-            # puts "Observed: #{actual_percentage}%, Expected: #{rollout_percentage}%"
 
             expect(actual_percentage).to be_within(5).of(rollout_percentage)
           end
         end
+      end
+    end
+
+    context "increase rollout_percentage" do
+      let(:rollout_percentage) { 5 }
+      let(:new_rollout_percentage) { 25 }
+      let(:test_count) { 200 }
+
+      before do
+        # save global_feature_settings
+        global_feature_settings
+        # generate 5 whitelisted and 95 blacklisted client_settings
+        clients_count = 100
+        clients_count.times do |i|
+          status = i < rollout_percentage ? FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] : FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
+          create(:client_feature_settings,
+            client_uuid: "test-client-#{i}",
+            status: status,
+            global_settings: global_feature_settings,
+            extra_data: {
+              'generated_by_rollout' => true,
+              'assigned_by_percentage' => rollout_percentage
+            }
+          )
+        end
+        # increase rollout_percentage
+        global_feature_settings.update!(extra_data: {rollout_percentage: new_rollout_percentage})
+        # collect existing whitelisted clients uuids
+        @whitelisted_clients_uuids = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:whitelisted]).pluck(:client_uuid)
+
+        test_count.times do |i|
+          client = FeatureTogglers::Client.new(client_uuid: "test-client-#{i}")
+          client.enabled?(feature_name)
+        end
+
+      end
+
+      it "preserves existing whitelisted clients when rollout percentage increases" do
+        statuses = FeatureTogglers::ClientSettings.where(client_uuid: @whitelisted_clients_uuids).pluck(:status).uniq
+        expect(statuses.size).to eq(1)
+        expect(statuses.first).to eq(FeatureTogglers::ClientSettings::STATUS[:whitelisted])
+      end
+
+      it "assigns whitelisted clients approximately according to rollout percentage" do
+        total_count = FeatureTogglers::ClientSettings.count
+        whitelist_count = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:whitelisted]).count
+        actual_percentage = (whitelist_count.to_f / total_count * 100).round
+
+        expect(actual_percentage).to be_within(10).of(new_rollout_percentage)
+      end
+    end
+
+    context "decrease rollout_percentage" do
+      let(:rollout_percentage) { 25 }
+      let(:new_rollout_percentage) { 5 }
+      let(:test_count) { 200 }
+
+      before do
+        # save global_feature_settings
+        global_feature_settings
+        # generate 25 whitelisted and 75 blacklisted client_settings
+        clients_count = 100
+        clients_count.times do |i|
+          status = i < rollout_percentage ? FeatureTogglers::Configuration::STATUSES[:client][:whitelisted] : FeatureTogglers::Configuration::STATUSES[:client][:blacklisted]
+          create(:client_feature_settings,
+              client_uuid: "test-client-#{i}",
+              status: status,
+              global_settings: global_feature_settings,
+              extra_data: {
+                'generated_by_rollout' => true,
+                'assigned_by_percentage' => rollout_percentage
+              }
+            )
+        end
+        # decrease rollout_percentage
+        global_feature_settings.update!(extra_data: {rollout_percentage: new_rollout_percentage})
+
+        # collect existing blacklisted clients uuids
+        @blacklisted_clients_uuids = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:blacklisted]).pluck(:client_uuid)
+
+        test_count.times do |i|
+          client = FeatureTogglers::Client.new(client_uuid: "test-client-#{i}")
+          client.enabled?(feature_name)
+        end
+      end
+
+      it "preserves existing blacklisted clients when rollout percentage decreases" do
+        statuses = FeatureTogglers::ClientSettings.where(client_uuid: @blacklisted_clients_uuids).pluck(:status).uniq
+        expect(statuses.size).to eq(1)
+        expect(statuses.first).to eq(FeatureTogglers::ClientSettings::STATUS[:blacklisted])
+      end
+
+      it "assigns whitelisted clients approximately according to rollout percentage" do
+        total_count = FeatureTogglers::ClientSettings.count
+        whitelist_count = FeatureTogglers::ClientSettings.where(status: FeatureTogglers::ClientSettings::STATUS[:whitelisted]).count
+        actual_percentage = (whitelist_count.to_f / total_count * 100).round
+
+        expect(actual_percentage).to be_within(10).of(new_rollout_percentage)
       end
     end
   end
