@@ -29,7 +29,7 @@ module FeatureTogglers
     FeatureTogglers::Configuration::STATUSES[:global].each do |status_name, status_value|
       verb = FeatureTogglers::Configuration::VERBS[:global][status_name]
 
-      define_method("#{verb}_global_setting!") do |feature_name, extra_data: {}|
+      define_method("#{verb}_global_setting!") do |feature_name, extra_data: nil|
         upsert_global_setting(feature_name, status_name, extra_data).tap do
           refresh_settings!
         end
@@ -39,7 +39,7 @@ module FeatureTogglers
     FeatureTogglers::Configuration::STATUSES[:client].each do |status_name, status_value|
       verb = FeatureTogglers::Configuration::VERBS[:client][status_name]
 
-      define_method("#{verb}_client_setting!") do |feature_name, extra_data: {}|
+      define_method("#{verb}_client_setting!") do |feature_name, extra_data: nil|
         upsert_client_setting(feature_name, client_uuid, status_name, extra_data).tap do
           refresh_settings!
         end
@@ -134,6 +134,7 @@ module FeatureTogglers
 
       global_setting = fetch_global_setting(feature_name)
       if global_setting.present?
+        extra_data = extra_data || global_setting.extra_data
         FeatureTogglers::GlobalSettings.update_resource(global_setting.id, status_value, extra_data)
       else
         FeatureTogglers::GlobalSettings.create_resource(feature_name, status_value, extra_data)
@@ -149,6 +150,7 @@ module FeatureTogglers
 
       setting = fetch_client_setting(feature_name, global_setting)
       if setting.present?
+        extra_data = extra_data || setting.extra_data
         FeatureTogglers::ClientSettings.update_resource(setting.id, status_value, extra_data)
       else
         FeatureTogglers::ClientSettings.create_resource(global_setting.id, client_uuid, status_value, extra_data)

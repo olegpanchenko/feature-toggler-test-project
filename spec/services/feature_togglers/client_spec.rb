@@ -90,138 +90,318 @@ RSpec.describe FeatureTogglers::Client, type: :model do
   describe '#enable_global_setting!' do
     let(:feature_name) { 'foobar' }
 
-    it 'creates global setting with an enabled status' do
-      expect(client.enabled?(feature_name)).to be(false)
-      result = client.enable_global_setting!(feature_name)
+    shared_examples 'a successful enable' do
+      it 'returns success and enables the feature' do
+        expect(client.enabled?(feature_name)).to be(before_disabled)
+        result = client.enable_global_setting!(feature_name, extra_data: input_extra_data)
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(true)
+        expect(result[:success]).to be(true)
+        expect(client.enabled?(feature_name)).to be(true)
+        expect(global_setting.reload.extra_data).to eq(expected_extra_data)
+      end
     end
 
-    it 'updates global setting with an enabled status' do
-      global_feature_setting = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:disabled]
-      expect(client.enabled?(feature_name)).to be(false)
-      result = client.enable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
+    context 'when no global setting exists' do
+      let(:before_disabled) { false }
+      let(:global_setting) { FeatureTogglers::GlobalSettings.find_by(name: feature_name) }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { nil }
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(true)
-      expect(global_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
+      include_examples 'a successful enable'
+    end
+
+    context 'when a global setting exists with custom extra_data' do
+      let(:before_disabled) { false }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { { 'custom_data' => 'value' } }
+
+      let!(:global_setting) do
+        create :global_feature_settings, name: feature_name,
+               status: FeatureTogglers::GlobalSettings::STATUS[:disabled],
+               extra_data: expected_extra_data
+      end
+
+      include_examples 'a successful enable'
+    end
+
+    context 'when overriding extra_data during disable' do
+      let(:before_disabled) { false }
+      let(:input_extra_data) { { custom_data: 'bar' } }
+      let(:expected_extra_data) { { 'custom_data' => 'bar' } }
+
+      let!(:global_setting) do
+        create :global_feature_settings, name: feature_name,
+               status: FeatureTogglers::GlobalSettings::STATUS[:disabled],
+               extra_data: { custom_data: 'foo' }
+      end
+
+      include_examples 'a successful enable'
     end
   end
 
   describe '#disable_global_setting!' do
     let(:feature_name) { 'foobar' }
 
-    it 'creates global setting with a disabled status' do
-      expect(client.enabled?(feature_name)).to be(false)
-      result = client.disable_global_setting!(feature_name)
+    shared_examples 'a successful disable' do
+      it 'returns success and disables the feature' do
+        expect(client.enabled?(feature_name)).to be(before_disabled)
+        result = client.disable_global_setting!(feature_name, extra_data: input_extra_data)
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(false)
+        expect(result[:success]).to be(true)
+        expect(client.enabled?(feature_name)).to be(false)
+        expect(global_setting.reload.extra_data).to eq(expected_extra_data)
+      end
     end
 
-    it 'updates global setting with a disabled status' do
-      global_feature_setting = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
-      expect(client.enabled?(feature_name)).to be(true)
-      result = client.disable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
+    context 'when no global setting exists' do
+      let(:before_disabled) { false }
+      let(:global_setting) { FeatureTogglers::GlobalSettings.find_by(name: feature_name) }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { nil }
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(false)
-      expect(global_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
+      include_examples 'a successful disable'
+    end
+
+    context 'when a global setting exists with custom extra_data' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { { 'custom_data' => 'value' } }
+
+      let!(:global_setting) do
+        create :global_feature_settings, name: feature_name,
+               status: FeatureTogglers::GlobalSettings::STATUS[:enabled],
+               extra_data: expected_extra_data
+      end
+
+      include_examples 'a successful disable'
+    end
+
+    context 'when overriding extra_data during disable' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { { custom_data: 'bar' } }
+      let(:expected_extra_data) { { 'custom_data' => 'bar' } }
+
+      let!(:global_setting) do
+        create :global_feature_settings, name: feature_name,
+               status: FeatureTogglers::GlobalSettings::STATUS[:enabled],
+               extra_data: { custom_data: 'foo' }
+      end
+
+      include_examples 'a successful disable'
     end
   end
 
-  describe '#disabled_hard_global_setting!' do
+  describe '#disable_hard_global_setting!' do
     let(:feature_name) { 'foobar' }
 
-    it 'creates global setting with a disabled_hard status' do
-      expect(client.enabled?(feature_name)).to be(false)
-      result = client.disable_global_setting!(feature_name)
+    shared_examples 'a successful hard disable' do
+      it 'returns success and disables the feature' do
+        expect(client.enabled?(feature_name)).to be(before_disabled)
+        result = client.disable_hard_global_setting!(feature_name, extra_data: input_extra_data)
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(false)
+        expect(result[:success]).to be(true)
+        expect(client.enabled?(feature_name)).to be(false)
+        expect(global_setting.reload.extra_data).to eq(expected_extra_data)
+      end
     end
 
-    it 'updates global setting with a disabled_hard status' do
-      global_feature_setting = create :global_feature_settings, name: feature_name, status: FeatureTogglers::GlobalSettings::STATUS[:enabled]
-      expect(client.enabled?(feature_name)).to be(true)
-      result = client.disable_global_setting!(feature_name, extra_data: { custom_data: 'value' })
+    context 'when no global setting exists' do
+      let(:before_disabled) { false }
+      let(:global_setting) { FeatureTogglers::GlobalSettings.find_by(name: feature_name) }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { nil }
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(false)
-      expect(global_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
+      include_examples 'a successful hard disable'
+    end
+
+    context 'when a global setting exists with custom extra_data' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { { 'custom_data' => 'value' } }
+
+      let!(:global_setting) do
+        create :global_feature_settings, name: feature_name,
+               status: FeatureTogglers::GlobalSettings::STATUS[:enabled],
+               extra_data: expected_extra_data
+      end
+
+      include_examples 'a successful hard disable'
+    end
+
+    context 'when overriding extra_data during disable' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { { custom_data: 'bar' } }
+      let(:expected_extra_data) { { 'custom_data' => 'bar' } }
+
+      let!(:global_setting) do
+        create :global_feature_settings, name: feature_name,
+               status: FeatureTogglers::GlobalSettings::STATUS[:enabled],
+               extra_data: { custom_data: 'foo' }
+      end
+
+      include_examples 'a successful hard disable'
     end
   end
 
   describe '#whitelist_client_setting!' do
-    it 'creates client setting with a whitelisted status' do
-      expect(client.enabled?(global_feature_setting.name)).to be(true)
-      result = client.whitelist_client_setting!(global_feature_setting.name)
+    let(:feature) { global_feature_setting.name }
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(global_feature_setting.name)).to be(true)
+    shared_examples 'a successful whitelist' do
+      it 'returns success and whitelist the feature' do
+        expect(client.enabled?(feature)).to be(before_disabled)
+        result = client.whitelist_client_setting!(feature, extra_data: input_extra_data)
+
+        expect(result[:success]).to be(true)
+        expect(client.enabled?(feature)).to be(true)
+        expect(client_setting.reload.extra_data).to eq(expected_extra_data)
+      end
     end
 
-    it 'updates client setting with a whitelisted status' do
-      client_feature_setting =create :client_feature_settings,
-            client_uuid: client_uuid,
-            status: FeatureTogglers::ClientSettings::STATUS[:blacklisted],
-            global_settings: global_feature_setting
+    context 'when no client setting exists' do
+      let(:before_disabled) { true }
+      let(:client_setting) { FeatureTogglers::ClientSettings.find_by(client_uuid: client_uuid) }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { nil }
 
-      expect(client.enabled?(feature_name)).to be(false)
-      result = client.whitelist_client_setting!(feature_name, extra_data: { custom_data: 'value' })
+      include_examples 'a successful whitelist'
+    end
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(true)
-      expect(client_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
+    context 'when a global setting exists with custom extra_data' do
+      let(:before_disabled) { false }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { { 'custom_data' => 'value' } }
+
+      let!(:client_setting) do
+        create :client_feature_settings, client_uuid: client_uuid,
+               status: FeatureTogglers::ClientSettings::STATUS[:blacklisted],
+               global_settings: global_feature_setting,
+               extra_data: expected_extra_data
+      end
+
+      include_examples 'a successful whitelist'
+    end
+
+    context 'when overriding extra_data during disable' do
+      let(:before_disabled) { false }
+      let(:input_extra_data) { { custom_data: 'bar' } }
+      let(:expected_extra_data) { { 'custom_data' => 'bar' } }
+
+      let!(:client_setting) do
+        create :client_feature_settings, client_uuid: client_uuid,
+               status: FeatureTogglers::ClientSettings::STATUS[:blacklisted],
+               global_settings: global_feature_setting,
+               extra_data: { custom_data: 'foo' }
+      end
+
+      include_examples 'a successful whitelist'
     end
   end
 
   describe '#blacklist_client_setting!' do
-    it 'creates client setting with a blacklisted status' do
-      expect(client.enabled?(global_feature_setting.name)).to be(true)
-      result = client.blacklist_client_setting!(global_feature_setting.name)
+    let(:feature) { global_feature_setting.name }
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(global_feature_setting.name)).to be(false)
+    shared_examples 'a successful blacklist' do
+      it 'returns success and blacklist the feature' do
+        expect(client.enabled?(feature)).to be(before_disabled)
+        result = client.blacklist_client_setting!(feature, extra_data: input_extra_data)
+
+        expect(result[:success]).to be(true)
+        expect(client.enabled?(feature)).to be(false)
+        expect(client_setting.reload.extra_data).to eq(expected_extra_data)
+      end
     end
 
-    it 'updates client setting with a blacklisted status' do
-      client_feature_setting = create :client_feature_settings,
-            client_uuid: client_uuid,
-            status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-            global_settings: global_feature_setting
+    context 'when no client setting exists' do
+      let(:before_disabled) { true }
+      let(:client_setting) { FeatureTogglers::ClientSettings.find_by(client_uuid: client_uuid) }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { nil }
 
-      expect(client.enabled?(feature_name)).to be(true)
-      result = client.blacklist_client_setting!(feature_name, extra_data: { custom_data: 'value' })
+      include_examples 'a successful blacklist'
+    end
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(false)
-      expect(client_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
+    context 'when a global setting exists with custom extra_data' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { { 'custom_data' => 'value' } }
+
+      let!(:client_setting) do
+        create :client_feature_settings, client_uuid: client_uuid,
+               status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
+               global_settings: global_feature_setting,
+               extra_data: expected_extra_data
+      end
+
+      include_examples 'a successful blacklist'
+    end
+
+    context 'when overriding extra_data during disable' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { { custom_data: 'bar' } }
+      let(:expected_extra_data) { { 'custom_data' => 'bar' } }
+
+      let!(:client_setting) do
+        create :client_feature_settings, client_uuid: client_uuid,
+               status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
+               global_settings: global_feature_setting,
+               extra_data: { custom_data: 'foo' }
+      end
+
+      include_examples 'a successful blacklist'
     end
   end
 
-  describe '#disable_by_client_client_setting  !' do
-    it 'creates client setting with a disabled_by_client status' do
-      expect(client.enabled?(global_feature_setting.name)).to be(true)
-      result = client.disable_by_client_client_setting!(global_feature_setting.name)
+  describe '#disable_by_client_client_setting!' do
+    let(:feature) { global_feature_setting.name }
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(global_feature_setting.name)).to be(false)
+    shared_examples 'a successful disable by client' do
+      it 'returns success and disable by client the feature' do
+        expect(client.enabled?(feature)).to be(before_disabled)
+        result = client.disable_by_client_client_setting!(feature, extra_data: input_extra_data)
+
+        expect(result[:success]).to be(true)
+        expect(client.enabled?(feature)).to be(false)
+        expect(client_setting.reload.extra_data).to eq(expected_extra_data)
+      end
     end
 
-    it 'updates client setting with a disabled_by_client status' do
-      client_feature_setting = create :client_feature_settings,
-            client_uuid: client_uuid,
-            status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
-            global_settings: global_feature_setting
+    context 'when no client setting exists' do
+      let(:before_disabled) { true }
+      let(:client_setting) { FeatureTogglers::ClientSettings.find_by(client_uuid: client_uuid) }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { nil }
 
-      expect(client.enabled?(feature_name)).to be(true)
-      result = client.disable_by_client_client_setting!(feature_name, extra_data: { custom_data: 'value' })
+      include_examples 'a successful disable by client'
+    end
 
-      expect(result[:success]).to be(true)
-      expect(client.enabled?(feature_name)).to be(false)
-      expect(client_feature_setting.reload.extra_data).to eq({ 'custom_data' => 'value' })
+    context 'when a global setting exists with custom extra_data' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { nil }
+      let(:expected_extra_data) { { 'custom_data' => 'value' } }
+
+      let!(:client_setting) do
+        create :client_feature_settings, client_uuid: client_uuid,
+               status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
+               global_settings: global_feature_setting,
+               extra_data: expected_extra_data
+      end
+
+      include_examples 'a successful disable by client'
+    end
+
+    context 'when overriding extra_data during disable' do
+      let(:before_disabled) { true }
+      let(:input_extra_data) { { custom_data: 'bar' } }
+      let(:expected_extra_data) { { 'custom_data' => 'bar' } }
+
+      let!(:client_setting) do
+        create :client_feature_settings, client_uuid: client_uuid,
+               status: FeatureTogglers::ClientSettings::STATUS[:whitelisted],
+               global_settings: global_feature_setting,
+               extra_data: { custom_data: 'foo' }
+      end
+
+      include_examples 'a successful disable by client'
     end
   end
 
