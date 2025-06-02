@@ -34,6 +34,10 @@ module FeatureTogglers
     def enabled?
       status == STATUS[:enabled]
     end
+
+    def rollout_percentage
+      extra_data&.fetch('rollout_percentage', nil)&.to_i
+    end
  
     def self.create_resource(name, status, extra_data)
       settings = self.new(name: name)

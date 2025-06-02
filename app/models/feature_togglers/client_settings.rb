@@ -30,6 +30,14 @@ module FeatureTogglers
     def disabled_by_client?
       status == STATUS[:disabled_by_client]
     end
+
+    def generated_by_rollout?
+      extra_data&.fetch('generated_by_rollout', false)
+    end
+
+    def assigned_by_percentage
+      extra_data&.fetch('assigned_by_percentage', nil)&.to_i
+    end
   
     def self.update_resource(id, status, extra_data)
       client_settings = self.find(id)

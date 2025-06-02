@@ -1,7 +1,7 @@
 class ClientFeatureSettings
   attr_reader :client_uuid, :feature_name
 
-  def initialize(feature_name:, client_uuid:)
+  def initialize(feature_name: nil, client_uuid:)
     @feature_name = feature_name
     @client_uuid = client_uuid
   end
